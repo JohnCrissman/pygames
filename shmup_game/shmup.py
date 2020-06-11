@@ -2,6 +2,9 @@
 
 import pygame
 import random
+from os import path
+
+img_dir = path.join(path.dirname(__file__), 'img')
 
 WIDTH = 480
 HEIGHT = 600
@@ -21,13 +24,18 @@ pygame.mixer.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Shmup!")
 clock = pygame.time.Clock()
+# Setting the icon image
+icon_img = pygame.image.load(path.join(img_dir, "star_gold.png"))
+pygame.display.set_icon(icon_img)
 
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.Surface((50, 40))
-        self.image.fill(GREEN)
+        self.image = pygame.transform.scale(player_img, (50, 38))
+        self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
+        self.radius = 20
+        # pygame.draw.circle(self.image, RED, self.rect.center, self.radius)
         self.rect.centerx = WIDTH/2
         self.rect.bottom = HEIGHT - 10
         self.speedx = 0
@@ -55,9 +63,22 @@ class Player(pygame.sprite.Sprite):
 class Mob(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.Surface((30, 40))
-        self.image.fill(RED)
+
+        meteor_type = random.randint(1,4)
+        if meteor_type == 1:
+            self.image = pygame.transform.scale(meteor1_img, (51, 42))
+        elif meteor_type == 2:
+            self.image = pygame.transform.scale(meteor2_img, (51, 42))
+        elif meteor_type == 3:
+            self.image = pygame.transform.scale(meteor3_img, (51, 42))
+        else:
+            self.image = pygame.transform.scale(meteor4_img, (51, 42))
+        self.image.set_colorkey(BLACK)
+        
+        
         self.rect = self.image.get_rect()
+        self.radius = int(self.rect.width *.85/ 2)
+        # pygame.draw.circle(self.image, RED, self.rect.center, self.radius)
         self.rect.x = random.randrange(WIDTH - self.rect.width)
         self.rect.y = random.randrange(-100, -40)
         self.speedy = random.randrange(1, 8)
@@ -74,8 +95,10 @@ class Mob(pygame.sprite.Sprite):
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, x, y):
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.Surface((10, 20))
-        self.image.fill(YELLOW)
+        # self.image = pygame.transform.scale(player_img, (50, 38))
+        self.image = bullet_img
+        self.image.set_colorkey(BLACK)
+        
         self.rect = self.image.get_rect()
         self.rect.bottom = y
         self.rect.centerx = x
@@ -87,7 +110,15 @@ class Bullet(pygame.sprite.Sprite):
         if self.rect.bottom < 0:
             self.kill()
 
-
+# Load all game graphics
+background = pygame.image.load(path.join(img_dir, "space1.png")).convert()
+background_rect = background.get_rect()
+player_img = pygame.image.load(path.join(img_dir, "playerShip3_orange.png")).convert()
+meteor1_img = pygame.image.load(path.join(img_dir, "meteorGrey_big1.png")).convert()
+meteor2_img = pygame.image.load(path.join(img_dir, "meteorGrey_big2.png")).convert()
+meteor3_img = pygame.image.load(path.join(img_dir, "meteorGrey_big3.png")).convert()
+meteor4_img = pygame.image.load(path.join(img_dir, "meteorGrey_big4.png")).convert()
+bullet_img = pygame.image.load(path.join(img_dir, "laserRed16.png")).convert()
 
 all_sprites = pygame.sprite.Group()
 mobs = pygame.sprite.Group()
@@ -99,6 +130,8 @@ for i in range(8):
     m = Mob()
     all_sprites.add(m)
     mobs.add(m)
+
+
 
 # Game loop
 running = True
@@ -126,12 +159,15 @@ while running:
         mobs.add(m)
 
     # check to see if a mob hit the player
-    hits = pygame.sprite.spritecollide(player, mobs, False)
+    # if the type of collision is blank, default is rectangle.  We are setting it to collide_circle
+    hits = pygame.sprite.spritecollide(player, mobs, False, pygame.sprite.collide_circle)
     if hits:  # if hits (a list) is empty.. then 'if hits' returns False
         running = False
 
     # Draw / render
     screen.fill(BLACK)
+    screen.blit(background, background_rect)
+
     all_sprites.draw(screen)
     # after* drawing everything, flip the display
     # "do the flip last"
