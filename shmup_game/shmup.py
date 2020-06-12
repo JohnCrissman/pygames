@@ -1,10 +1,13 @@
 # Shmup game
+# Frozen Jam by tgfcoder <https://twitter.com/tgfcoder> licensed under CC-BY-3 <http://creativecommons.org/licenses/by/3.0/>
+# Art from Kenney.nl
 
 import pygame
 import random
 from os import path
 
 img_dir = path.join(path.dirname(__file__), 'img')
+snd_dir = path.join(path.dirname(__file__), 'snd')
 
 WIDTH = 480
 HEIGHT = 600
@@ -20,13 +23,38 @@ YELLOW = (255, 255, 0)
 
 # initialize pygame and create window
 pygame.init()
-pygame.mixer.init()
+pygame.mixer.init()  # starts the sound system
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Shmup!")
 clock = pygame.time.Clock()
 # Setting the icon image
 icon_img = pygame.image.load(path.join(img_dir, "star_gold.png"))
 pygame.display.set_icon(icon_img)
+
+font_name = pygame.font.match_font('arial')
+def draw_text(surf, text, size, x, y):
+    font = pygame.font.Font(font_name, size)
+    # True means we want the text to be anti-aliased (nice looking font)
+    text_surface = font.render(text, True, WHITE)
+    text_rect = text_surface.get_rect()
+    text_rect.midtop = (x, y)
+    surf.blit(text_surface, text_rect)
+
+def newmob():
+    m = Mob()
+    all_sprites.add(m)
+    mobs.add(m)
+
+def draw_shield_bar(surf, x, y, pct):
+    if pct < 0:
+        pct = 0
+    BAR_LENGTH = 100
+    BAR_HEIGHT = 10
+    fill = (pct / 100) * BAR_LENGTH
+    outline_rect = pygame.Rect(x, y, BAR_LENGTH, BAR_HEIGHT)
+    fill_rect = pygame.Rect(x, y, fill, BAR_HEIGHT)
+    pygame.draw.rect(surf, GREEN, fill_rect)
+    pygame.draw.rect(surf, WHITE, outline_rect, 2)
 
 class Player(pygame.sprite.Sprite):
     def __init__(self):
@@ -39,6 +67,7 @@ class Player(pygame.sprite.Sprite):
         self.rect.centerx = WIDTH/2
         self.rect.bottom = HEIGHT - 10
         self.speedx = 0
+        self.shield = 100
 
     def update(self):
         self.speedx = 0
@@ -59,20 +88,21 @@ class Player(pygame.sprite.Sprite):
         bullet = Bullet(self.rect.centerx, self.rect.top)
         all_sprites.add(bullet)
         bullets.add(bullet)
+        # shoot_sound.play() # commented out so bullets do not make sounds
 
 class Mob(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
-
-        meteor_type = random.randint(1,4)
-        if meteor_type == 1:
-            self.image_orig = pygame.transform.scale(meteor1_img, (51, 42))
-        elif meteor_type == 2:
-            self.image_orig = pygame.transform.scale(meteor2_img, (51, 42))
-        elif meteor_type == 3:
-            self.image_orig = pygame.transform.scale(meteor3_img, (51, 42))
-        else:
-            self.image_orig = pygame.transform.scale(meteor4_img, (51, 42))
+        self.image_orig = random.choice(meteor_images)
+        # meteor_type = random.randint(1,4)
+        # if meteor_type == 1:
+        #     self.image_orig = pygame.transform.scale(meteor1_img, (51, 42))
+        # elif meteor_type == 2:
+        #     self.image_orig = pygame.transform.scale(meteor2_img, (51, 42))
+        # elif meteor_type == 3:
+        #     self.image_orig = pygame.transform.scale(meteor3_img, (51, 42))
+        # else:
+        #     self.image_orig = pygame.transform.scale(meteor4_img, (51, 42))
         
         self.image_orig.set_colorkey(BLACK)
         
@@ -82,7 +112,7 @@ class Mob(pygame.sprite.Sprite):
         self.radius = int(self.rect.width *.85/ 2)
         # pygame.draw.circle(self.image, RED, self.rect.center, self.radius)
         self.rect.x = random.randrange(WIDTH - self.rect.width)
-        self.rect.y = random.randrange(-100, -40)
+        self.rect.y = random.randrange(-150, -40)
         self.speedy = random.randrange(1, 8)
         self.speedx = random.randrange(-3, 3)
         self.rot = 0
@@ -131,11 +161,29 @@ class Bullet(pygame.sprite.Sprite):
 background = pygame.image.load(path.join(img_dir, "space1.png")).convert()
 background_rect = background.get_rect()
 player_img = pygame.image.load(path.join(img_dir, "playerShip3_orange.png")).convert()
-meteor1_img = pygame.image.load(path.join(img_dir, "meteorGrey_big1.png")).convert()
-meteor2_img = pygame.image.load(path.join(img_dir, "meteorGrey_big2.png")).convert()
-meteor3_img = pygame.image.load(path.join(img_dir, "meteorGrey_big3.png")).convert()
-meteor4_img = pygame.image.load(path.join(img_dir, "meteorGrey_big4.png")).convert()
+# meteor1_img = pygame.image.load(path.join(img_dir, "meteorGrey_big1.png")).convert()
+# meteor2_img = pygame.image.load(path.join(img_dir, "meteorGrey_big2.png")).convert()
+# meteor3_img = pygame.image.load(path.join(img_dir, "meteorGrey_big3.png")).convert()
+# meteor4_img = pygame.image.load(path.join(img_dir, "meteorGrey_big4.png")).convert()
 bullet_img = pygame.image.load(path.join(img_dir, "laserRed16.png")).convert()
+
+meteor_images = []
+meteor_list = ['meteorGrey_big1.png', 'meteorGrey_big2.png', 'meteorGrey_big3.png',
+               'meteorGrey_big4.png', 'meteorGrey_med1.png', 'meteorGrey_med2.png',
+               'meteorGrey_small1.png', 'meteorGrey_small2.png', 'meteorGrey_tiny1.png',
+               'meteorGrey_tiny2.png']
+
+for img in meteor_list:
+    meteor_images.append(pygame.image.load(path.join(img_dir, img)).convert())
+
+# Load all game sounds
+shoot_sound = pygame.mixer.Sound(path.join(snd_dir, 'Laser_Shoot9.wav'))
+expl_sounds = []
+for snd in ['Explosion2.wav', 'Explosion3.wav',
+            'Explosion4.wav', 'Explosion12.wav']:
+    expl_sounds.append(pygame.mixer.Sound(path.join(snd_dir, snd)))
+pygame.mixer.music.load(path.join(snd_dir, 'tgfcoder-FrozenJam-SeamlessLoop.ogg'))
+pygame.mixer.music.set_volume(0.4)
 
 all_sprites = pygame.sprite.Group()
 mobs = pygame.sprite.Group()
@@ -144,12 +192,10 @@ bullets = pygame.sprite.Group()
 player = Player()
 all_sprites.add(player)
 for i in range(8):
-    m = Mob()
-    all_sprites.add(m)
-    mobs.add(m)
+    newmob()
 
-
-
+score = 0
+pygame.mixer.music.play(loops=-1)
 # Game loop
 running = True
 while running:
@@ -171,21 +217,26 @@ while running:
     # check to see if a bullet hit a mob
     hits = pygame.sprite.groupcollide(mobs, bullets, True, True)
     for hit in hits:
-        m = Mob()
-        all_sprites.add(m)
-        mobs.add(m)
+        score += 50 - hit.radius
+        random.choice(expl_sounds).play()
+        newmob()
 
     # check to see if a mob hit the player
     # if the type of collision is blank, default is rectangle.  We are setting it to collide_circle
-    hits = pygame.sprite.spritecollide(player, mobs, False, pygame.sprite.collide_circle)
-    if hits:  # if hits (a list) is empty.. then 'if hits' returns False
-        running = False
+    hits = pygame.sprite.spritecollide(player, mobs, True, pygame.sprite.collide_circle)
+    for hit in hits:  # if hits (a list) is empty.. then 'if hits' returns False
+        player.shield -= hit.radius * 2
+        newmob()
+        if player.shield <= 0:
+            running = False
 
     # Draw / render
     screen.fill(BLACK)
     screen.blit(background, background_rect)
 
     all_sprites.draw(screen)
+    draw_text(screen, str(score), 18, WIDTH/2, 10)
+    draw_shield_bar(screen, 5, 5, player.shield)
     # after* drawing everything, flip the display
     # "do the flip last"
     pygame.display.flip()
