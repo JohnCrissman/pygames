@@ -73,7 +73,7 @@ class Game:
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_ESCAPE:
                     self.quit()
-                # if event.key == pg.K_LEFT:
+                # if event.key == pg.K_LEFT:  ## key based movement
                 #     self.player.move(dx=-1)
                 # if event.key == pg.K_RIGHT:
                 #     self.player.move(dx=1)
